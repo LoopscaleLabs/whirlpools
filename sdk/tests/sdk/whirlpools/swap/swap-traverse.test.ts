@@ -1,27 +1,24 @@
 import * as anchor from "@project-serum/anchor";
 import * as assert from "assert";
-import { PublicKey } from "@solana/web3.js";
 import {
   WhirlpoolContext,
   AccountFetcher,
   buildWhirlpoolClient,
   PriceMath,
-  WhirlpoolClient,
-  Whirlpool,
   TICK_ARRAY_SIZE,
   swapQuoteByInputToken,
   MAX_TICK_INDEX,
   MIN_TICK_INDEX,
 } from "../../../../src";
 import { TickSpacing } from "../../../utils";
-import {
-  FundedPositionParams,
-  fundPositions,
-  initTestPoolWithTokens,
-} from "../../../utils/init-utils";
 import { Percentage } from "@orca-so/common-sdk";
 import { u64 } from "@solana/spl-token";
 import { BN } from "bn.js";
+import {
+  arrayTickIndexToTickIndex,
+  buildPosition,
+  setupSwapTest,
+} from "../../../utils/swap-test-utils";
 
 describe("swap traversal test", async () => {
   const provider = anchor.Provider.local();
@@ -492,65 +489,3 @@ describe("swap traversal test", async () => {
     });
   });
 });
-
-export interface SwapTestPoolParams {
-  ctx: WhirlpoolContext;
-  client: WhirlpoolClient;
-  tickSpacing: TickSpacing;
-  initSqrtPrice: anchor.BN;
-  initArrayStartTicks: number[];
-  fundedPositions: FundedPositionParams[];
-}
-
-export interface SwapTestSwapParams {
-  swapAmount: u64;
-  aToB: boolean;
-  amountSpecifiedIsInput: boolean;
-  slippageTolerance: Percentage;
-  tickArrayAddresses: PublicKey[];
-}
-
-export interface SwapTestSetup {
-  whirlpool: Whirlpool;
-  tickArrayAddresses: PublicKey[];
-}
-
-async function setupSwapTest(setup: SwapTestPoolParams) {
-  const { poolInitInfo, whirlpoolPda, tokenAccountA, tokenAccountB } = await initTestPoolWithTokens(
-    setup.ctx,
-    setup.tickSpacing,
-    setup.initSqrtPrice
-  );
-
-  const whirlpool = await setup.client.getPool(whirlpoolPda.publicKey, true);
-  console.log(`init tick arrays for - ${JSON.stringify(setup.initArrayStartTicks, undefined, 2)}`);
-
-  (await whirlpool.initTickArrayForTicks(setup.initArrayStartTicks))?.buildAndExecute();
-
-  console.log(`initialized tick-arrays`);
-  await fundPositions(setup.ctx, poolInitInfo, tokenAccountA, tokenAccountB, setup.fundedPositions);
-  console.log(`funded position`);
-  return whirlpool;
-}
-
-export interface ArrayTickIndex {
-  arrayIndex: number;
-  offsetIndex: number;
-}
-
-function arrayTickIndexToTickIndex(index: ArrayTickIndex, tickSpacing: number) {
-  return index.arrayIndex * TICK_ARRAY_SIZE * tickSpacing + index.offsetIndex * tickSpacing;
-}
-
-function buildPosition(
-  lower: ArrayTickIndex,
-  upper: ArrayTickIndex,
-  tickSpacing: number,
-  liquidityAmount: anchor.BN
-) {
-  return {
-    tickLowerIndex: arrayTickIndexToTickIndex(lower, tickSpacing),
-    tickUpperIndex: arrayTickIndexToTickIndex(upper, tickSpacing),
-    liquidityAmount,
-  };
-}
