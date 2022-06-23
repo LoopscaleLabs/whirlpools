@@ -299,8 +299,8 @@ export async function initTestPoolWithTokens(
   );
 
   const { tokenMintA, tokenMintB, whirlpoolPda } = poolInitInfo;
-  const tokenAccountA = await createAndMintToTokenAccount(provider, tokenMintA, 15_000_000);
-  const tokenAccountB = await createAndMintToTokenAccount(provider, tokenMintB, 15_000_000);
+  const tokenAccountA = await createAndMintToTokenAccount(provider, tokenMintA, 15_000_000_000);
+  const tokenAccountB = await createAndMintToTokenAccount(provider, tokenMintB, 15_000_000_000);
   return {
     poolInitInfo,
     configInitInfo,

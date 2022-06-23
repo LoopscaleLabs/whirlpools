@@ -111,6 +111,8 @@ export class WhirlpoolImpl implements Whirlpool {
       return null;
     }
 
+    console.log(`initing for - ${JSON.stringify(initTickArrayStartPdas, undefined, 2)}`);
+
     const txBuilder = new TransactionBuilder(this.ctx.provider);
     initTickArrayStartPdas.forEach((initTickArrayInfo) => {
       txBuilder.addInstruction(
