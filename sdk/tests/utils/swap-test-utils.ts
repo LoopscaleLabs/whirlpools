@@ -5,6 +5,7 @@ import { u64 } from "@solana/spl-token";
 import { TickSpacing } from ".";
 import { WhirlpoolContext, WhirlpoolClient, Whirlpool, TICK_ARRAY_SIZE } from "../../src";
 import { FundedPositionParams, initTestPoolWithTokens, fundPositions } from "./init-utils";
+import { BN } from "bn.js";
 
 export interface SwapTestPoolParams {
   ctx: WhirlpoolContext;
@@ -13,6 +14,7 @@ export interface SwapTestPoolParams {
   initSqrtPrice: anchor.BN;
   initArrayStartTicks: number[];
   fundedPositions: FundedPositionParams[];
+  tokenMintAmount?: anchor.BN;
 }
 
 export interface SwapTestSwapParams {
@@ -32,6 +34,7 @@ export async function setupSwapTest(setup: SwapTestPoolParams) {
   const { poolInitInfo, whirlpoolPda, tokenAccountA, tokenAccountB } = await initTestPoolWithTokens(
     setup.ctx,
     setup.tickSpacing,
+    setup.tokenMintAmount,
     setup.initSqrtPrice
   );
 

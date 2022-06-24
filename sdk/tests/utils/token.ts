@@ -149,7 +149,7 @@ export async function createAndMintToTokenAccount(
   amount: number | BN
 ): Promise<web3.PublicKey> {
   const tokenAccount = await createTokenAccount(provider, mint, provider.wallet.publicKey);
-  await mintToByAuthority(provider, mint, tokenAccount, amount);
+  await mintToByAuthority(provider, mint, tokenAccount, new u64(amount.toString()));
   return tokenAccount;
 }
 
