@@ -167,27 +167,30 @@ export class TickArrayUtil {
   }
 
   /**
-   *
-   * @param tickLowerIndex
-   * @param tickUpperIndex
-   * @param tickSpacing
-   * @param whirlpool
-   * @param programId
-   * @returns
+   * Return a sequence of tick array pdas based on the sequence start index.
+   * @param tick - A tick in the first tick-array of your sequence
+   * @param tickSpacing - Tick spacing for the whirlpool
+   * @param numOfTickArrays - The number of TickArray PDAs to generate
+   * @param programId - Program Id of the whirlpool for these tick-arrays
+   * @param whirlpoolAddress - Address for the Whirlpool for these tick-arrays
+   * @returns TickArray PDAs for the sequence`
    */
-  public static getAdjacentTickArrays(
-    tickLowerIndex: number,
-    tickUpperIndex: number,
+  public static async getTickArrayPDAs(
+    tick: number,
     tickSpacing: number,
-    whirlpool: PublicKey,
-    programId: PublicKey
-  ): [PublicKey, PublicKey] {
-    return [
-      PDAUtil.getTickArrayFromTickIndex(tickLowerIndex, tickSpacing, whirlpool, programId)
-        .publicKey,
-      PDAUtil.getTickArrayFromTickIndex(tickUpperIndex, tickSpacing, whirlpool, programId)
-        .publicKey,
-    ];
+    numOfTickArrays: number,
+    programId: PublicKey,
+    whirlpoolAddress: PublicKey,
+    aToB: boolean
+  ) {
+    let arrayIndexList = [...Array(numOfTickArrays).keys()];
+    if (aToB) {
+      arrayIndexList = arrayIndexList.map((value) => -value);
+    }
+    return arrayIndexList.map((value) => {
+      const startTick = TickUtil.getStartTickIndex(tick, tickSpacing, value);
+      return PDAUtil.getTickArray(programId, whirlpoolAddress, startTick);
+    });
   }
 
   public static async getUninitializedArraysPDAs(
