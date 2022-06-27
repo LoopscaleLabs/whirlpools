@@ -1,5 +1,5 @@
 import { ZERO } from "@orca-so/common-sdk";
-import { TickArrayData, TickData } from "../types/public";
+import { TickArrayData, TickData } from "../../types/public";
 
 /**
  * Expectation:
@@ -7,12 +7,21 @@ import { TickArrayData, TickData } from "../types/public";
  * aToB -> [0, -1, -2]
  * bToA -> [0, 1, 2]
  */
+// TODO: implement this class
 export class TickArraySequence {
+  private touchedArrays: number[];
+
   constructor(
     readonly tickArrays: (TickArrayData | null)[],
     readonly tickSpacing: number,
     readonly aToB: boolean
-  ) {}
+  ) {
+    this.touchedArrays = [...Array<number>(tickArrays.length).fill(0)];
+  }
+
+  getNumOfTouchedArrays() {
+    return this.touchedArrays.filter((val) => val > 0).length;
+  }
 
   getTick(index: number): TickData {
     return {

@@ -3,28 +3,13 @@ import { PublicKey } from "@solana/web3.js";
 import { u64 } from "@solana/spl-token";
 import invariant from "tiny-invariant";
 import { PoolUtil } from "../../utils/public/pool-utils";
-import {
-  SwapDirection,
-  AmountSpecified,
-  adjustAmountForSlippage,
-  getAmountFixedDelta,
-  getNextSqrtPrice,
-  getAmountUnfixedDelta,
-} from "../../utils/position-util";
 import { SwapInput } from "../../instructions";
-import {
-  WhirlpoolData,
-  TickArrayData,
-  MAX_TICK_ARRAY_CROSSINGS,
-  MIN_SQRT_PRICE,
-  MAX_SQRT_PRICE,
-  TICK_ARRAY_SIZE,
-} from "../../types/public";
-import { AddressUtil, MathUtil, Percentage, ZERO } from "@orca-so/common-sdk";
-import { PriceMath, TickArrayUtil, TickUtil } from "../../utils/public";
+import { WhirlpoolData, TickArrayData, MIN_SQRT_PRICE, MAX_SQRT_PRICE } from "../../types/public";
+import { AddressUtil, Percentage, ZERO } from "@orca-so/common-sdk";
+import { TickArrayUtil } from "../../utils/public";
 import { Whirlpool } from "../../whirlpool-client";
 import { AccountFetcher } from "../../network/public";
-import { depSwapQuoteWithParams } from "../swap-quote-impl-deprecated";
+import { swapQuoteWithParamsImpl as simulateSwap } from "../swap/swap-quote-impl";
 
 /**
  * @category Quotes
@@ -40,6 +25,15 @@ export type SwapQuoteParam = {
   tickArrayAddresses: PublicKey[];
   tickArrays: (TickArrayData | null)[];
 };
+
+export enum SwapErrorCode {
+  InvalidSqrtPriceLimitDirection,
+  SqrtPriceOutOfBounds,
+  ZeroTradableAmount,
+  AmountOutBelowMinimum,
+  AmountInAboveMaximum,
+  TickArrayCrossingAboveMax,
+}
 
 /**
  * @category Quotes
@@ -85,7 +79,7 @@ export async function swapQuoteByInputToken(
     throw new Error(`TickArray addresses - [${uninitializedArrays}] need to be initialized.`);
   }
 
-  return swapQuoteWithParams({
+  const swapQuoteResult = simulateSwap({
     whirlpoolData,
     tokenAmount,
     aToB,
@@ -96,19 +90,14 @@ export async function swapQuoteByInputToken(
     tickArrayAddresses,
     tickArrays,
   });
+
+  if (!swapQuoteResult.ok) {
+    throw new Error(`Encountered error on swap quote - ${SwapErrorCode[swapQuoteResult.val]}`);
+  }
+
+  return swapQuoteResult.val;
 }
 
 function getDefaultSqrtPriceLimit(aToB: boolean) {
   return aToB ? new u64(MIN_SQRT_PRICE) : new u64(MAX_SQRT_PRICE);
-}
-
-/*
- * Get an estimated quote of a swap
- *
- * @category Quotes
- * @param param a SwapQuoteParam object detailing parameters of the swap
- * @return a SwapQuote on the estimated amountIn & amountOut of the swap and a SwapInput to use on the swap instruction.
- */
-export function swapQuoteWithParams(param: SwapQuoteParam): SwapQuote {
-  return depSwapQuoteWithParams(param);
 }

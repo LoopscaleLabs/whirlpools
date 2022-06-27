@@ -1,9 +1,10 @@
 import { ZERO } from "@orca-so/common-sdk";
 import { u64 } from "@solana/spl-token";
 import BN from "bn.js";
-import { WhirlpoolData } from "../types/public";
-import { PriceMath } from "../utils/public";
-import { TickArraySequence } from "../utils/tick-array-sequence";
+import { WhirlpoolData } from "../../types/public";
+import { PriceMath } from "../../utils/public";
+import { TickArraySequence } from "./tick-array-sequence";
+import { computeSwapStep } from "./swap-math";
 
 export function simulateSwap(
   whirlpoolData: WhirlpoolData,
@@ -33,7 +34,7 @@ export function simulateSwap(
       aToB
     );
 
-    const swapComputation = computeSwap(
+    const swapComputation = computeSwapStep(
       amountRemaining,
       feeRate,
       currLiquidity,
@@ -65,7 +66,7 @@ export function simulateSwap(
     currFeeGrowthGlobalInput = nextFeeGrowthGlobalInput;
 
     if (swapComputation.nextPrice.eq(nextTickPrice)) {
-      const nextTick = tickSequence.getTick(1);
+      const nextTick = tickSequence.getTick(nextTickIndex);
       if (nextTick.initialized) {
         currLiquidity = calculateNextLiquidity(nextTick.liquidityNet, currLiquidity, aToB);
       }
@@ -108,10 +109,30 @@ function calculateFees(
   currProtocolFee: BN,
   currFeeGrowthGlobalInput: BN
 ) {
+  let nextProtocolFee = currProtocolFee;
+  let nextFeeGrowthGlobalInput = currFeeGrowthGlobalInput;
+  let globalFee = feeAmount;
+
+  if (protocolFeeRate > 0) {
+    let delta = calculateProtocolFee(globalFee, protocolFeeRate);
+    globalFee = globalFee.sub(delta);
+    nextProtocolFee = nextProtocolFee.add(currProtocolFee);
+  }
+
+  if (currLiquidity.gt(ZERO)) {
+    const globalFeeIncrement = globalFee.mul(new BN(2).pow(new BN(64))).div(currLiquidity);
+    nextFeeGrowthGlobalInput = nextFeeGrowthGlobalInput.add(globalFeeIncrement);
+  }
+
   return {
-    nextProtocolFee: ZERO,
-    nextFeeGrowthGlobalInput: ZERO,
+    nextProtocolFee,
+    nextFeeGrowthGlobalInput,
   };
+}
+
+function calculateProtocolFee(globalFee: BN, protocolFeeRate: number) {
+  // TODO: protocol fee rate sanitized?
+  return globalFee.mul(new u64(protocolFeeRate).div(new u64(10000)));
 }
 
 function calculateEstTokens(
@@ -121,41 +142,18 @@ function calculateEstTokens(
   aToB: boolean,
   amountSpecifiedIsInput: boolean
 ) {
-  return {
-    amountA: ZERO,
-    amountB: ZERO,
-  };
+  return aToB === amountSpecifiedIsInput
+    ? {
+        amountA: amount.sub(amountRemaining),
+        amountB: amountCalculated,
+      }
+    : {
+        amountA: amountCalculated,
+        amountB: amount.sub(amountRemaining),
+      };
 }
 
 function calculateNextLiquidity(tickNetLiquidity: BN, currLiquidity: BN, aToB: boolean) {
   // TODO: Handle Overflow?
   return aToB ? currLiquidity.sub(tickNetLiquidity) : currLiquidity.add(tickNetLiquidity);
 }
-
-function computeSwap(
-  amountRemaining: u64,
-  feeRate: number,
-  currLiquidity: BN,
-  currSqrtPrice: BN,
-  targetSqrtPrice: BN,
-  amountSpecifiedIsInput: boolean,
-  aToB: boolean
-) {
-  return {
-    amountIn: ZERO,
-    amountOut: ZERO,
-    nextPrice: ZERO,
-    feeAmount: ZERO,
-  };
-}
-/**
- * Compute swap
- */
-// function computeSwap() {
-//   // lock the user-input
-//   // adjust input token if necessary
-//   // decide on sqrt-price target
-//   // check if it is a maximum swap
-//   // calculate the other amount
-//   // calculate fee amount
-// }

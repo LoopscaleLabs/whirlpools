@@ -1,20 +1,12 @@
 import { ZERO } from "@orca-so/common-sdk";
-import { SwapQuoteParam, SwapQuote } from "./public";
+import { SwapQuoteParam, SwapQuote, SwapErrorCode } from "../public";
 import { PublicKey } from "@solana/web3.js";
 import { BN } from "@project-serum/anchor";
 import { u64 } from "@solana/spl-token";
-import { TickArraySequence } from "../utils/tick-array-sequence";
+import { TickArraySequence } from "./tick-array-sequence";
 import { simulateSwap } from "./swap-manager";
 import { Err, Ok, Result } from "ts-results";
-import { MAX_SQRT_PRICE, MIN_SQRT_PRICE } from "../types/public";
-
-export enum SwapErrorCode {
-  InvalidSqrtPriceLimitDirection,
-  SqrtPriceOutOfBounds,
-  ZeroTradableAmount,
-  AmountOutBelowMinimum,
-  AmountInAboveMaximum,
-}
+import { MAX_SQRT_PRICE, MAX_TICK_ARRAY_CROSSINGS, MIN_SQRT_PRICE } from "../../types/public";
 
 /**
  * Figure out the quote parameters needed to successfully complete this trade on chain
@@ -82,6 +74,9 @@ export function swapQuoteWithParamsImpl(params: SwapQuoteParam): Result<SwapQuot
   );
 
   // TODO: determine tick-array used?
+  if (tickSequence.getNumOfTouchedArrays() > MAX_TICK_ARRAY_CROSSINGS) {
+    return new Err(SwapErrorCode.TickArrayCrossingAboveMax);
+  }
 
   return new Ok({
     estimatedAmountIn,
