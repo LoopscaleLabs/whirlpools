@@ -32,6 +32,8 @@ import { depSwapQuoteWithParams } from "../swap-quote-impl-deprecated";
 export type SwapQuoteParam = {
   whirlpoolData: WhirlpoolData;
   tokenAmount: u64;
+  otherAmountThreshold: u64;
+  sqrtPriceLimit: u64;
   aToB: boolean;
   amountSpecifiedIsInput: boolean;
   slippageTolerance: Percentage;
@@ -88,10 +90,16 @@ export async function swapQuoteByInputToken(
     tokenAmount,
     aToB,
     amountSpecifiedIsInput,
+    sqrtPriceLimit: getDefaultSqrtPriceLimit(aToB),
+    otherAmountThreshold: ZERO,
     slippageTolerance,
     tickArrayAddresses,
     tickArrays,
   });
+}
+
+function getDefaultSqrtPriceLimit(aToB: boolean) {
+  return aToB ? new u64(MIN_SQRT_PRICE) : new u64(MAX_SQRT_PRICE);
 }
 
 /*

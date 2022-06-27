@@ -6,6 +6,7 @@ import {
   getUpperSqrtPriceFromTokenB,
   getLowerSqrtPriceFromTokenB,
 } from "./swap-utils";
+import { getTokenAFromLiquidity, getTokenBFromLiquidity } from "./token-math-utils";
 
 export enum SwapDirection {
   AtoB = "Swap A to B",
@@ -95,47 +96,6 @@ export function getLiquidityFromTokenB(
     return MathUtil.divRoundUp(numerator, denominator);
   } else {
     return numerator.div(denominator);
-  }
-}
-
-function orderSqrtPrice(sqrtPrice0X64: BN, sqrtPrice1X64: BN): [BN, BN] {
-  if (sqrtPrice0X64.lt(sqrtPrice1X64)) {
-    return [sqrtPrice0X64, sqrtPrice1X64];
-  } else {
-    return [sqrtPrice1X64, sqrtPrice0X64];
-  }
-}
-
-export function getTokenAFromLiquidity(
-  liquidity: BN,
-  sqrtPrice0X64: BN,
-  sqrtPrice1X64: BN,
-  roundUp: boolean
-) {
-  const [sqrtPriceLowerX64, sqrtPriceUpperX64] = orderSqrtPrice(sqrtPrice0X64, sqrtPrice1X64);
-
-  const numerator = liquidity.mul(sqrtPriceUpperX64.sub(sqrtPriceLowerX64)).shln(64);
-  const denominator = sqrtPriceUpperX64.mul(sqrtPriceLowerX64);
-  if (roundUp) {
-    return MathUtil.divRoundUp(numerator, denominator);
-  } else {
-    return numerator.div(denominator);
-  }
-}
-
-export function getTokenBFromLiquidity(
-  liquidity: BN,
-  sqrtPrice0X64: BN,
-  sqrtPrice1X64: BN,
-  roundUp: boolean
-) {
-  const [sqrtPriceLowerX64, sqrtPriceUpperX64] = orderSqrtPrice(sqrtPrice0X64, sqrtPrice1X64);
-
-  const result = liquidity.mul(sqrtPriceUpperX64.sub(sqrtPriceLowerX64));
-  if (roundUp) {
-    return MathUtil.shiftRightRoundUp(result);
-  } else {
-    return result.shrn(64);
   }
 }
 
