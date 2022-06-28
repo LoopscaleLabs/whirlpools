@@ -11,22 +11,109 @@ export function computeSwapStep(
   amountSpecifiedIsInput: boolean,
   aToB: boolean
 ) {
+  let amountFixedDelta = getAmountFixedDelta(
+    currSqrtPrice,
+    targetSqrtPrice,
+    currLiquidity,
+    amountSpecifiedIsInput,
+    aToB
+  );
+
+  let amountCalc = amountRemaining;
+  if (amountSpecifiedIsInput) {
+    amountCalc = amountRemaining.mul(new BN(1000000).sub(new BN(feeRate))).div(new BN(1000000));
+  }
+
+  let nextSqrtPrice = amountCalc.gte(amountFixedDelta) ? targetSqrtPrice : getNextSqrtPrice();
+
+  let isMaxSwap = nextSqrtPrice.eq(targetSqrtPrice);
+
+  let amountUnfixedDelta = getAmountUnfixedDelta(
+    currSqrtPrice,
+    nextSqrtPrice,
+    currLiquidity,
+    amountSpecifiedIsInput,
+    aToB
+  );
+
+  if (!isMaxSwap) {
+    amountFixedDelta = getAmountFixedDelta(
+      currSqrtPrice,
+      nextSqrtPrice,
+      currLiquidity,
+      amountSpecifiedIsInput,
+      aToB
+    );
+  }
+
+  let amountIn = amountSpecifiedIsInput ? amountFixedDelta : amountUnfixedDelta;
+  let amountOut = amountSpecifiedIsInput ? amountUnfixedDelta : amountFixedDelta;
+
+  if (!amountSpecifiedIsInput && amountOut.gt(amountRemaining)) {
+    amountOut = amountRemaining;
+  }
+
+  let feeAmount: BN;
+  if (amountSpecifiedIsInput && !isMaxSwap) {
+    feeAmount = amountRemaining.sub(amountIn);
+  } else {
+    feeAmount = amountIn.mul(new BN(feeRate)).div(new BN(1000000).sub(new BN(feeRate)));
+  }
+
   return {
-    amountIn: ZERO,
-    amountOut: ZERO,
-    nextPrice: ZERO,
-    feeAmount: ZERO,
+    amountIn,
+    amountOut,
+    nextPrice: nextSqrtPrice,
+    feeAmount,
   };
 }
 
-/**
- * Compute swap
- */
-// function computeSwap() {
-//   // lock the user-input
-//   // adjust input token if necessary
-//   // decide on sqrt-price target
-//   // check if it is a maximum swap
-//   // calculate the other amount
-//   // calculate fee amount
-// }
+function getNextSqrtPrice() {
+  return new BN(0);
+}
+
+function getAmountFixedDelta(
+  currSqrtPrice: BN,
+  targetSqrtPrice: BN,
+  currLiquidity: BN,
+  amountSpecifiedIsInput: boolean,
+  aToB: boolean
+) {
+  if (aToB === amountSpecifiedIsInput) {
+    return getAmountDeltaA(currSqrtPrice, targetSqrtPrice, currLiquidity, amountSpecifiedIsInput);
+  } else {
+    return getAmountDeltaB(currSqrtPrice, targetSqrtPrice, currLiquidity, amountSpecifiedIsInput);
+  }
+}
+
+function getAmountUnfixedDelta(
+  currSqrtPrice: BN,
+  targetSqrtPrice: BN,
+  currLiquidity: BN,
+  amountSpecifiedIsInput: boolean,
+  aToB: boolean
+) {
+  if (aToB === amountSpecifiedIsInput) {
+    return getAmountDeltaB(currSqrtPrice, targetSqrtPrice, currLiquidity, amountSpecifiedIsInput);
+  } else {
+    return getAmountDeltaA(currSqrtPrice, targetSqrtPrice, currLiquidity, amountSpecifiedIsInput);
+  }
+}
+
+function getAmountDeltaA(
+  currSqrtPrice: BN,
+  targetSqrtPrice: BN,
+  currLiquidity: BN,
+  roundUp: boolean
+) {
+  return new BN(0);
+}
+
+function getAmountDeltaB(
+  currSqrtPrice: BN,
+  targetSqrtPrice: BN,
+  currLiquidity: BN,
+  roundUp: boolean
+) {
+  return new BN(0);
+}
