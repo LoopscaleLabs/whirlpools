@@ -51,7 +51,7 @@ describe("position-impl", () => {
     );
 
     // [Action] Initialize Tick Arrays
-    const initTickArrayTx = await pool.initTickArrayForTicks([lowerTick, upperTick]);
+    const initTickArrayTx = (await pool.initTickArrayForTicks([lowerTick, upperTick]))!;
     await initTickArrayTx.buildAndExecute();
 
     // [Action] Create a position at price 89, 120 with 50 token A
@@ -79,7 +79,7 @@ describe("position-impl", () => {
     );
 
     await (
-      await position.increaseLiquidity(increase_quote, ctx.wallet.publicKey)
+      await position.increaseLiquidity(increase_quote, false, ctx.wallet.publicKey)
     ).buildAndExecute();
 
     const postIncreaseData = await position.refreshData();
@@ -97,9 +97,7 @@ describe("position-impl", () => {
       pool
     );
 
-    await (
-      await position.decreaseLiquidity(decrease_quote, ctx.wallet.publicKey, ctx.wallet.publicKey)
-    ).buildAndExecute();
+    await (await position.decreaseLiquidity(decrease_quote, false)).buildAndExecute();
 
     const postWithdrawData = await position.refreshData();
     const expectedPostWithdrawLiquidity = postIncreaseData.liquidity.sub(
@@ -108,7 +106,7 @@ describe("position-impl", () => {
     assert.equal(postWithdrawData.liquidity.toString(), expectedPostWithdrawLiquidity.toString());
   });
 
-  it("decrease liquidity on position with a different destination, position wallet", async () => {
+  it("increase & decrease liquidity on position with a different destination, position wallet", async () => {
     const { poolInitInfo } = await initTestPool(
       ctx,
       TickSpacing.Standard,
@@ -137,7 +135,7 @@ describe("position-impl", () => {
     );
 
     // [Action] Initialize Tick Arrays
-    const initTickArrayTx = await pool.initTickArrayForTicks([lowerTick, upperTick]);
+    const initTickArrayTx = (await pool.initTickArrayForTicks([lowerTick, upperTick]))!;
     await initTickArrayTx.buildAndExecute();
 
     // [Action] Create a position at price 89, 120 with 50 token A
@@ -164,9 +162,7 @@ describe("position-impl", () => {
       pool
     );
 
-    await (
-      await position.increaseLiquidity(increase_quote, ctx.wallet.publicKey)
-    ).buildAndExecute();
+    await (await position.increaseLiquidity(increase_quote, false)).buildAndExecute();
 
     const postIncreaseData = await position.refreshData();
     const expectedPostIncreaseLiquidity = preIncreaseData.liquidity.add(
@@ -194,21 +190,51 @@ describe("position-impl", () => {
     );
     await transfer(provider, walletPositionTokenAccount, newOwnerPositionTokenAccount, 1);
 
+    // Mint to this other wallet and increase more tokens
+    await mintTokensToTestAccount(
+      ctx.provider,
+      poolInitInfo.tokenMintA,
+      10_500_000_000,
+      poolInitInfo.tokenMintB,
+      10_500_000_000,
+      otherWallet.publicKey
+    );
+    const increaseQuoteFromOtherWallet = increaseLiquidityQuoteByInputToken(
+      poolInitInfo.tokenMintB,
+      new Decimal(80),
+      lowerTick,
+      upperTick,
+      Percentage.fromFraction(1, 100),
+      pool
+    );
+    await (
+      await position.increaseLiquidity(
+        increaseQuoteFromOtherWallet,
+        true,
+        otherWallet.publicKey,
+        otherWallet.publicKey
+      )
+    )
+      .addSigner(otherWallet)
+      .buildAndExecute();
+
+    const postSecondIncreaseData = await position.refreshData();
+
     // Withdraw liquidity into another wallet
     const destinationWallet = anchor.web3.Keypair.generate();
     await (
       await position.decreaseLiquidity(
         decrease_quote,
+        true,
         destinationWallet.publicKey,
-        otherWallet.publicKey,
-        true
+        otherWallet.publicKey
       )
     )
       .addSigner(otherWallet)
       .buildAndExecute();
 
     const postWithdrawData = await position.refreshData();
-    const expectedPostWithdrawLiquidity = postIncreaseData.liquidity.sub(
+    const expectedPostWithdrawLiquidity = postSecondIncreaseData.liquidity.sub(
       decrease_quote.liquidityAmount
     );
     assert.equal(postWithdrawData.liquidity.toString(), expectedPostWithdrawLiquidity.toString());
