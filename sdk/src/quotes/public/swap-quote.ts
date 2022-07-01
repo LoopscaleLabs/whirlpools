@@ -9,7 +9,7 @@ import { AddressUtil, Percentage, ZERO } from "@orca-so/common-sdk";
 import { TickArrayUtil } from "../../utils/public";
 import { Whirlpool } from "../../whirlpool-client";
 import { AccountFetcher } from "../../network/public";
-import { swapQuoteWithParamsImpl as simulateSwap } from "../swap/swap-quote-impl";
+import { swapQuoteWithParamsImpl } from "../swap/swap-quote-impl";
 import { WhirlpoolsError } from "../../errors/errors";
 
 /**
@@ -80,7 +80,7 @@ export async function swapQuoteByInputToken(
     throw new Error(`TickArray addresses - [${uninitializedArrays}] need to be initialized.`);
   }
 
-  return simulateSwap({
+  return swapQuoteWithParamsImpl({
     whirlpoolData,
     tokenAmount,
     aToB,

@@ -1,4 +1,4 @@
-import { ZERO } from "@orca-so/common-sdk";
+import { MathUtil, Percentage, ZERO } from "@orca-so/common-sdk";
 import { SwapQuoteParam, SwapQuote, SwapErrorCode } from "../public";
 import { PublicKey } from "@solana/web3.js";
 import { BN } from "@project-serum/anchor";
@@ -23,6 +23,7 @@ export function swapQuoteWithParamsImpl(params: SwapQuoteParam): SwapQuote {
     sqrtPriceLimit,
     otherAmountThreshold,
     amountSpecifiedIsInput,
+    slippageTolerance,
   } = params;
 
   if (sqrtPriceLimit.gt(new u64(MAX_SQRT_PRICE) || sqrtPriceLimit.lt(new u64(MIN_SQRT_PRICE)))) {
@@ -79,10 +80,11 @@ export function swapQuoteWithParamsImpl(params: SwapQuoteParam): SwapQuote {
     }
   }
 
-  const { estimatedAmountIn, estimatedAmountOut } = remapTokens(
+  const { estimatedAmountIn, estimatedAmountOut } = remapAndAdjustTokens(
     swapResults.amountA,
     swapResults.amountB,
-    aToB
+    aToB,
+    slippageTolerance
   );
 
   if (tickSequence.getNumOfTouchedArrays() > MAX_TICK_ARRAY_CROSSINGS) {
@@ -107,11 +109,24 @@ export function swapQuoteWithParamsImpl(params: SwapQuoteParam): SwapQuote {
   };
 }
 
-function remapTokens(amountA: BN, amountB: BN, aToB: boolean) {
-  const estimatedAmountIn = aToB ? amountA : amountB;
-  const estimatedAmountOut = aToB ? amountB : amountA;
+function remapAndAdjustTokens(
+  amountA: BN,
+  amountB: BN,
+  aToB: boolean,
+  slippageTolerance: Percentage
+) {
+  const estimatedAmountIn = adjustForSlippage(aToB ? amountA : amountB, slippageTolerance, true);
+  const estimatedAmountOut = adjustForSlippage(aToB ? amountB : amountA, slippageTolerance, true);
   return {
     estimatedAmountIn,
     estimatedAmountOut,
   };
+}
+
+function adjustForSlippage(n: BN, { numerator, denominator }: Percentage, adjustUp: boolean): BN {
+  if (adjustUp) {
+    return n.mul(denominator.add(numerator)).div(denominator);
+  } else {
+    return n.mul(denominator).div(denominator.add(numerator));
+  }
 }
