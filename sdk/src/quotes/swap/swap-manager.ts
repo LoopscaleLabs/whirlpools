@@ -6,6 +6,13 @@ import { PriceMath } from "../../utils/public";
 import { TickArraySequence } from "./tick-array-sequence";
 import { computeSwapStep } from "./swap-math";
 
+export type SwapResult = {
+  amountA: BN;
+  amountB: BN;
+  nextTickIndex: number;
+  nextSqrtPrice: BN;
+};
+
 export function simulateSwap(
   whirlpoolData: WhirlpoolData,
   tickSequence: TickArraySequence,
@@ -13,7 +20,7 @@ export function simulateSwap(
   sqrtPriceLimit: u64,
   amountSpecifiedIsInput: boolean,
   aToB: boolean
-) {
+): SwapResult {
   let amountRemaining = tokenAmount;
   let amountCalculated = ZERO;
   let currSqrtPrice = whirlpoolData.sqrtPrice;

@@ -1,6 +1,13 @@
-import { ZERO } from "@orca-so/common-sdk";
 import { u64 } from "@solana/spl-token";
 import { BN } from "@project-serum/anchor";
+import { getAmountDeltaA, getAmountDeltaB, getNextSqrtPrice } from "./token-math";
+
+export type SwapStep = {
+  amountIn: BN;
+  amountOut: BN;
+  nextPrice: BN;
+  feeAmount: BN;
+};
 
 export function computeSwapStep(
   amountRemaining: u64,
@@ -10,7 +17,7 @@ export function computeSwapStep(
   targetSqrtPrice: BN,
   amountSpecifiedIsInput: boolean,
   aToB: boolean
-) {
+): SwapStep {
   let amountFixedDelta = getAmountFixedDelta(
     currSqrtPrice,
     targetSqrtPrice,
@@ -24,7 +31,9 @@ export function computeSwapStep(
     amountCalc = amountRemaining.mul(new BN(1000000).sub(new BN(feeRate))).div(new BN(1000000));
   }
 
-  let nextSqrtPrice = amountCalc.gte(amountFixedDelta) ? targetSqrtPrice : getNextSqrtPrice();
+  let nextSqrtPrice = amountCalc.gte(amountFixedDelta)
+    ? targetSqrtPrice
+    : getNextSqrtPrice(currSqrtPrice, currLiquidity, amountCalc, amountSpecifiedIsInput, aToB);
 
   let isMaxSwap = nextSqrtPrice.eq(targetSqrtPrice);
 
@@ -68,10 +77,6 @@ export function computeSwapStep(
   };
 }
 
-function getNextSqrtPrice() {
-  return new BN(0);
-}
-
 function getAmountFixedDelta(
   currSqrtPrice: BN,
   targetSqrtPrice: BN,
@@ -98,22 +103,4 @@ function getAmountUnfixedDelta(
   } else {
     return getAmountDeltaA(currSqrtPrice, targetSqrtPrice, currLiquidity, amountSpecifiedIsInput);
   }
-}
-
-function getAmountDeltaA(
-  currSqrtPrice: BN,
-  targetSqrtPrice: BN,
-  currLiquidity: BN,
-  roundUp: boolean
-) {
-  return new BN(0);
-}
-
-function getAmountDeltaB(
-  currSqrtPrice: BN,
-  targetSqrtPrice: BN,
-  currLiquidity: BN,
-  roundUp: boolean
-) {
-  return new BN(0);
 }

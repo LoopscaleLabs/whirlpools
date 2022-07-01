@@ -10,6 +10,7 @@ import { TickArrayUtil } from "../../utils/public";
 import { Whirlpool } from "../../whirlpool-client";
 import { AccountFetcher } from "../../network/public";
 import { swapQuoteWithParamsImpl as simulateSwap } from "../swap/swap-quote-impl";
+import { WhirlpoolsError } from "../../errors/errors";
 
 /**
  * @category Quotes
@@ -79,7 +80,7 @@ export async function swapQuoteByInputToken(
     throw new Error(`TickArray addresses - [${uninitializedArrays}] need to be initialized.`);
   }
 
-  const swapQuoteResult = simulateSwap({
+  return simulateSwap({
     whirlpoolData,
     tokenAmount,
     aToB,
@@ -90,12 +91,6 @@ export async function swapQuoteByInputToken(
     tickArrayAddresses,
     tickArrays,
   });
-
-  if (!swapQuoteResult.ok) {
-    throw new Error(`Encountered error on swap quote - ${SwapErrorCode[swapQuoteResult.val]}`);
-  }
-
-  return swapQuoteResult.val;
 }
 
 function getDefaultSqrtPriceLimit(aToB: boolean) {
