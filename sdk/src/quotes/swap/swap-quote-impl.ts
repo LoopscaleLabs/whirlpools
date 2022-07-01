@@ -5,7 +5,6 @@ import { BN } from "@project-serum/anchor";
 import { u64 } from "@solana/spl-token";
 import { TickArraySequence } from "./tick-array-sequence";
 import { simulateSwap } from "./swap-manager";
-import { Err, Ok, Result } from "ts-results";
 import { MAX_SQRT_PRICE, MAX_TICK_ARRAY_CROSSINGS, MIN_SQRT_PRICE } from "../../types/public";
 import { WhirlpoolsError } from "../../errors/errors";
 
@@ -27,11 +26,9 @@ export function swapQuoteWithParamsImpl(params: SwapQuoteParam): SwapQuote {
   } = params;
 
   if (sqrtPriceLimit.gt(new u64(MAX_SQRT_PRICE) || sqrtPriceLimit.lt(new u64(MIN_SQRT_PRICE)))) {
-    throw new Err(
-      new WhirlpoolsError(
-        "Provided SqrtPriceLimit is out of bounds.",
-        SwapErrorCode.SqrtPriceOutOfBounds
-      )
+    throw new WhirlpoolsError(
+      "Provided SqrtPriceLimit is out of bounds.",
+      SwapErrorCode.SqrtPriceOutOfBounds
     );
   }
 
@@ -39,18 +36,14 @@ export function swapQuoteWithParamsImpl(params: SwapQuoteParam): SwapQuote {
     (aToB && sqrtPriceLimit.gt(whirlpoolData.sqrtPrice)) ||
     (!aToB && sqrtPriceLimit.lt(whirlpoolData.sqrtPrice))
   ) {
-    throw new Err(
-      new WhirlpoolsError(
-        "Provided SqrtPriceLimit is in the opposite direction of the trade.",
-        SwapErrorCode.InvalidSqrtPriceLimitDirection
-      )
+    throw new WhirlpoolsError(
+      "Provided SqrtPriceLimit is in the opposite direction of the trade.",
+      SwapErrorCode.InvalidSqrtPriceLimitDirection
     );
   }
 
   if (tokenAmount.eq(ZERO)) {
-    throw new Err(
-      new WhirlpoolsError("Provided tokenAmount is zero.", SwapErrorCode.ZeroTradableAmount)
-    );
+    throw new WhirlpoolsError("Provided tokenAmount is zero.", SwapErrorCode.ZeroTradableAmount);
   }
 
   const tickSequence = new TickArraySequence(tickArrays, whirlpoolData.tickSpacing, aToB);
@@ -69,11 +62,9 @@ export function swapQuoteWithParamsImpl(params: SwapQuoteParam): SwapQuote {
       (aToB && otherAmountThreshold.gt(swapResults.amountB)) ||
       (!aToB && otherAmountThreshold.gt(swapResults.amountA))
     ) {
-      throw new Err(
-        new WhirlpoolsError(
-          "Quoted amount for the other token is below the otherAmountThreshold.",
-          SwapErrorCode.AmountOutBelowMinimum
-        )
+      throw new WhirlpoolsError(
+        "Quoted amount for the other token is below the otherAmountThreshold.",
+        SwapErrorCode.AmountOutBelowMinimum
       );
     }
   } else {
@@ -81,11 +72,9 @@ export function swapQuoteWithParamsImpl(params: SwapQuoteParam): SwapQuote {
       (aToB && otherAmountThreshold.lt(swapResults.amountA)) ||
       (!aToB && otherAmountThreshold.lt(swapResults.amountA))
     ) {
-      throw new Err(
-        new WhirlpoolsError(
-          "Quoted amount for the other token is above the otherAmountThreshold.",
-          SwapErrorCode.AmountInAboveMaximum
-        )
+      throw new WhirlpoolsError(
+        "Quoted amount for the other token is above the otherAmountThreshold.",
+        SwapErrorCode.AmountInAboveMaximum
       );
     }
   }
@@ -97,11 +86,9 @@ export function swapQuoteWithParamsImpl(params: SwapQuoteParam): SwapQuote {
   );
 
   if (tickSequence.getNumOfTouchedArrays() > MAX_TICK_ARRAY_CROSSINGS) {
-    throw new Err(
-      new WhirlpoolsError(
-        "Input amount causes the quote to traverse more than the allowable amount of tick-arrays",
-        SwapErrorCode.TickArrayCrossingAboveMax
-      )
+    throw new WhirlpoolsError(
+      "Input amount causes the quote to traverse more than the allowable amount of tick-arrays",
+      SwapErrorCode.TickArrayCrossingAboveMax
     );
   }
 
