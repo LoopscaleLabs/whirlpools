@@ -351,7 +351,7 @@ describe("swap arrays test", async () => {
    * TODO: Needs to succeed
    * |-------(5632)------|-------(5632)------|---c2--(5632)-c1---|
    */
-  it.only("3 identical arrays, 1st contains curr_tick_index, a->b", async () => {
+  it("3 identical arrays, 1st contains curr_tick_index, a->b", async () => {
     const currIndex = arrayTickIndexToTickIndex(
       { arrayIndex: 1, offsetIndex: TICK_ARRAY_SIZE - 4 },
       tickSpacing
@@ -394,7 +394,7 @@ describe("swap arrays test", async () => {
    * TODO: Needs to succeed
    * |---c1--(5632)-c2---|-------(5632)------|-------(5632)------|
    */
-  it.only("3 identical arrays, 1st contains curr_tick_index, b->a", async () => {
+  it("3 identical arrays, 1st contains curr_tick_index, b->a", async () => {
     const currIndex = arrayTickIndexToTickIndex({ arrayIndex: 1, offsetIndex: 10 }, tickSpacing);
     const whirlpool = await setupSwapTest({
       ctx,

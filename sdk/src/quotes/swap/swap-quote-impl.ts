@@ -1,12 +1,12 @@
 import { MathUtil, Percentage, ZERO } from "@orca-so/common-sdk";
-import { SwapQuoteParam, SwapQuote, SwapErrorCode } from "../public";
+import { SwapQuoteParam, SwapQuote } from "../public";
 import { PublicKey } from "@solana/web3.js";
 import { BN } from "@project-serum/anchor";
 import { u64 } from "@solana/spl-token";
 import { TickArraySequence } from "./tick-array-sequence";
 import { simulateSwap } from "./swap-manager";
 import { MAX_SQRT_PRICE, MAX_TICK_ARRAY_CROSSINGS, MIN_SQRT_PRICE } from "../../types/public";
-import { WhirlpoolsError } from "../../errors/errors";
+import { SwapErrorCode, WhirlpoolsError } from "../../errors/errors";
 
 /**
  * Figure out the quote parameters needed to successfully complete this trade on chain

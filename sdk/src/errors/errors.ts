@@ -17,6 +17,8 @@ export enum SwapErrorCode {
   AmountOutBelowMinimum,
   AmountInAboveMaximum,
   TickArrayCrossingAboveMax,
+  TickArrayIndexNotInitialized,
+  InvalidTickArraySequence,
 }
 
 export type WhirlpoolsErrorCode = TokenErrorCode | SwapErrorCode | MathErrorCode;

@@ -27,15 +27,6 @@ export type SwapQuoteParam = {
   tickArrays: (TickArrayData | null)[];
 };
 
-export enum SwapErrorCode {
-  InvalidSqrtPriceLimitDirection,
-  SqrtPriceOutOfBounds,
-  ZeroTradableAmount,
-  AmountOutBelowMinimum,
-  AmountInAboveMaximum,
-  TickArrayCrossingAboveMax,
-}
-
 /**
  * @category Quotes
  */
