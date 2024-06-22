@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "programs/whirlpool"
+    "programs/*"
 ]
 
 [profile.release]
