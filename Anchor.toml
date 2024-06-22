@@ -4,6 +4,11 @@ whirlpool = "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"
 [registry]
 url = "https://anchor.projectserum.com"
 
+[workspace]
+members = [
+  "programs/whirlpool",
+]
+
 [provider]
 cluster = "localnet"
 wallet = "~/.config/solana/id.json"
