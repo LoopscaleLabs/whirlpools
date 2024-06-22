@@ -19,8 +19,8 @@ pub mod tests;
 #[doc(hidden)]
 pub mod util;
 
-use crate::state::{OpenPositionBumps, OpenPositionWithMetadataBumps, WhirlpoolBumps};
-use instructions::*;
+pub use crate::state::{OpenPositionBumps, OpenPositionWithMetadataBumps, WhirlpoolBumps};
+pub use instructions::*;
 
 #[program]
 pub mod whirlpool {

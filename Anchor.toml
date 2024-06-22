@@ -6,7 +6,7 @@ url = "https://anchor.projectserum.com"
 
 [workspace]
 members = [
-  "programs/whirlpool",
+  "programs/*",
 ]
 
 [provider]
