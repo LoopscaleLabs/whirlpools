@@ -3002,7 +3002,7 @@ version = "0.2.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
- "borsh 0.9.3",
+ "borsh 0.10.3",
  "mpl-token-metadata",
  "proptest",
  "serde",

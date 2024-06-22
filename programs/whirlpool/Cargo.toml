@@ -22,7 +22,7 @@ solana-program = "=1.18.11"
 solana-zk-token-sdk = "=1.18.11"
 thiserror = "1.0"
 uint = {version = "0.9.1", default-features = false}
-borsh = "0.9.3"
+borsh = "0.10.3"
 mpl-token-metadata = { version = "=4.1.1", features=["serde"]}
 
 [dev-dependencies]
