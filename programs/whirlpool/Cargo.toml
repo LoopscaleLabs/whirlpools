@@ -22,7 +22,7 @@ spl-token = {version = "~3.5.0", features = ["no-entrypoint"]}
 solana-program = "=1.18.17"
 thiserror = "1.0"
 uint = {version = "0.9.1", default-features = false}
-borsh = "0.10.3"
+borsh = "0.9.3"
 mpl-token-metadata =  { version = "4.1.2", features = ["serde"] }
 spl-transfer-hook-interface = "0.6.0"
 spl-tlv-account-resolution = "0.6.0"

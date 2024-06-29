@@ -55,12 +55,6 @@ macro_rules! impl_borsh_deserialize_for_bn {
                 *buf = &buf[size_of::<$type>()..];
                 Ok(res)
             }
-
-            fn deserialize_reader<R: borsh::maybestd::io::Read>(reader: &mut R) -> std::io::Result<Self> {
-                let mut buf = [0u8; size_of::<$type>()];
-                reader.read_exact(&mut buf)?;
-                Ok($type::from_le_bytes(buf))
-            }
         }
     };
 }
