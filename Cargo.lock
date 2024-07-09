@@ -3002,17 +3002,14 @@ version = "0.2.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
- "borsh 0.9.3",
+ "borsh 0.10.3",
  "mpl-token-metadata",
  "proptest",
  "serde",
  "serde_json",
  "serde_with 1.14.0",
  "solana-program",
- "spl-pod",
- "spl-tlv-account-resolution",
  "spl-token 3.5.0",
- "spl-transfer-hook-interface",
  "thiserror",
  "uint",
 ]
