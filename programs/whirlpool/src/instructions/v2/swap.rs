@@ -2,18 +2,16 @@ use anchor_lang::prelude::*;
 use anchor_spl::memo::Memo;
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
-use crate::util::{
-    calculate_transfer_fee_excluded_amount, calculate_transfer_fee_included_amount,
-    parse_remaining_accounts, AccountsType, RemainingAccountsInfo,
-};
 use crate::{
     constants::transfer_memo,
     errors::ErrorCode,
+    events::*,
     manager::swap_manager::*,
-    state::Whirlpool,
+    state::*,
     util::{
-        to_timestamp_u64, v2::update_and_swap_whirlpool_v2, SparseSwapTickSequenceBuilder,
-        SwapTickSequence,
+        calculate_transfer_fee_excluded_amount, calculate_transfer_fee_included_amount,
+        parse_remaining_accounts, to_timestamp_u64, v2::update_and_swap_whirlpool_v2, AccountsType,
+        RemainingAccountsInfo, SparseSwapTickSequenceBuilder, SwapTickSequence,
     },
 };
 
@@ -92,17 +90,21 @@ pub fn handler<'info>(
         ],
     )?;
 
-    let builder = SparseSwapTickSequenceBuilder::try_from(
-        whirlpool,
-        a_to_b,
+    let swap_tick_sequence_builder = SparseSwapTickSequenceBuilder::new(
         vec![
             ctx.accounts.tick_array_0.to_account_info(),
             ctx.accounts.tick_array_1.to_account_info(),
             ctx.accounts.tick_array_2.to_account_info(),
         ],
         remaining_accounts.supplemental_tick_arrays,
-    )?;
-    let mut swap_tick_sequence = builder.build()?;
+    );
+    let mut swap_tick_sequence = swap_tick_sequence_builder.try_build(whirlpool, a_to_b)?;
+
+    let oracle_accessor = OracleAccessor::new(whirlpool, ctx.accounts.oracle.to_account_info())?;
+    if !oracle_accessor.is_trade_enabled(timestamp)? {
+        return Err(ErrorCode::TradeIsNotEnabled.into());
+    }
+    let adaptive_fee_info = oracle_accessor.get_adaptive_fee_info()?;
 
     let swap_update = swap_with_transfer_fee_extension(
         whirlpool,
@@ -114,6 +116,7 @@ pub fn handler<'info>(
         amount_specified_is_input,
         a_to_b,
         timestamp,
+        &adaptive_fee_info,
     )?;
 
     if amount_specified_is_input {
@@ -144,6 +147,25 @@ pub fn handler<'info>(
         }
     }
 
+    oracle_accessor.update_adaptive_fee_variables(&swap_update.next_adaptive_fee_info)?;
+
+    let pre_sqrt_price = whirlpool.sqrt_price;
+    let (input_amount, output_amount) = if a_to_b {
+        (swap_update.amount_a, swap_update.amount_b)
+    } else {
+        (swap_update.amount_b, swap_update.amount_a)
+    };
+    let (token_mint_input, token_mint_output) = if a_to_b {
+        (&ctx.accounts.token_mint_a, &ctx.accounts.token_mint_b)
+    } else {
+        (&ctx.accounts.token_mint_b, &ctx.accounts.token_mint_a)
+    };
+    let input_transfer_fee =
+        calculate_transfer_fee_excluded_amount(token_mint_input, input_amount)?.transfer_fee;
+    let output_transfer_fee =
+        calculate_transfer_fee_excluded_amount(token_mint_output, output_amount)?.transfer_fee;
+    let (lp_fee, protocol_fee) = (swap_update.lp_fee, swap_update.next_protocol_fee);
+
     update_and_swap_whirlpool_v2(
         whirlpool,
         &ctx.accounts.token_authority,
@@ -158,11 +180,26 @@ pub fn handler<'info>(
         &ctx.accounts.token_program_a,
         &ctx.accounts.token_program_b,
         &ctx.accounts.memo_program,
-        swap_update,
+        &swap_update,
         a_to_b,
         timestamp,
         transfer_memo::TRANSFER_MEMO_SWAP.as_bytes(),
-    )
+    )?;
+
+    emit!(Traded {
+        whirlpool: whirlpool.key(),
+        a_to_b,
+        pre_sqrt_price,
+        post_sqrt_price: whirlpool.sqrt_price,
+        input_amount,
+        output_amount,
+        input_transfer_fee,
+        output_transfer_fee,
+        lp_fee,
+        protocol_fee,
+    });
+
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -176,7 +213,8 @@ pub fn swap_with_transfer_fee_extension<'info>(
     amount_specified_is_input: bool,
     a_to_b: bool,
     timestamp: u64,
-) -> Result<PostSwapUpdate> {
+    adaptive_fee_info: &Option<AdaptiveFeeInfo>,
+) -> Result<Box<PostSwapUpdate>> {
     let (input_token_mint, output_token_mint) = if a_to_b {
         (token_mint_a, token_mint_b)
     } else {
@@ -198,6 +236,7 @@ pub fn swap_with_transfer_fee_extension<'info>(
             amount_specified_is_input,
             a_to_b,
             timestamp,
+            adaptive_fee_info,
         )?;
 
         let (swap_update_amount_input, swap_update_amount_output) = if a_to_b {
@@ -228,16 +267,18 @@ pub fn swap_with_transfer_fee_extension<'info>(
                 adjusted_transfer_fee_included_input,
             )
         };
-        return Ok(PostSwapUpdate {
+        return Ok(Box::new(PostSwapUpdate {
             amount_a, // updated (transfer fee included)
             amount_b, // updated (transfer fee included)
+            lp_fee: swap_update.lp_fee,
             next_liquidity: swap_update.next_liquidity,
             next_tick_index: swap_update.next_tick_index,
             next_sqrt_price: swap_update.next_sqrt_price,
             next_fee_growth_global: swap_update.next_fee_growth_global,
             next_reward_infos: swap_update.next_reward_infos,
             next_protocol_fee: swap_update.next_protocol_fee,
-        });
+            next_adaptive_fee_info: swap_update.next_adaptive_fee_info,
+        }));
     }
 
     // ExactOut
@@ -254,6 +295,7 @@ pub fn swap_with_transfer_fee_extension<'info>(
         amount_specified_is_input,
         a_to_b,
         timestamp,
+        adaptive_fee_info,
     )?;
 
     let (swap_update_amount_input, swap_update_amount_output) = if a_to_b {
@@ -278,14 +320,16 @@ pub fn swap_with_transfer_fee_extension<'info>(
             transfer_fee_included_input,
         )
     };
-    Ok(PostSwapUpdate {
+    Ok(Box::new(PostSwapUpdate {
         amount_a, // updated (transfer fee included)
         amount_b, // updated (transfer fee included)
+        lp_fee: swap_update.lp_fee,
         next_liquidity: swap_update.next_liquidity,
         next_tick_index: swap_update.next_tick_index,
         next_sqrt_price: swap_update.next_sqrt_price,
         next_fee_growth_global: swap_update.next_fee_growth_global,
         next_reward_infos: swap_update.next_reward_infos,
         next_protocol_fee: swap_update.next_protocol_fee,
-    })
+        next_adaptive_fee_info: swap_update.next_adaptive_fee_info,
+    }))
 }

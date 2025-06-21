@@ -2,13 +2,16 @@ use anchor_lang::prelude::*;
 
 use crate::constants::transfer_memo;
 use crate::errors::ErrorCode;
+use crate::events::*;
 use crate::manager::liquidity_manager::{
     calculate_liquidity_token_deltas, calculate_modify_liquidity, sync_modify_liquidity_values,
 };
+use crate::manager::tick_array_manager::update_tick_array_accounts;
 use crate::math::convert_to_liquidity_delta;
+use crate::state::TickArraysMut;
 use crate::util::{
-    calculate_transfer_fee_excluded_amount, parse_remaining_accounts, AccountsType,
-    RemainingAccountsInfo,
+    calculate_transfer_fee_excluded_amount, is_locked_position, parse_remaining_accounts,
+    AccountsType, RemainingAccountsInfo,
 };
 use crate::util::{
     to_timestamp_u64, v2::transfer_from_vault_to_owner_v2, verify_position_authority_interface,
@@ -31,6 +34,10 @@ pub fn handler<'info>(
         &ctx.accounts.position_authority,
     )?;
 
+    if is_locked_position(&ctx.accounts.position_token_account) {
+        return Err(ErrorCode::OperationNotAllowedOnLockedPosition.into());
+    }
+
     let clock = Clock::get()?;
 
     if liquidity_amount == 0 {
@@ -47,22 +54,41 @@ pub fn handler<'info>(
     let liquidity_delta = convert_to_liquidity_delta(liquidity_amount, false)?;
     let timestamp = to_timestamp_u64(clock.unix_timestamp)?;
 
+    let mut tick_arrays = TickArraysMut::load(
+        &ctx.accounts.tick_array_lower,
+        &ctx.accounts.tick_array_upper,
+        &ctx.accounts.whirlpool.key(),
+    )?;
+
+    let (lower_tick_array, upper_tick_array) = tick_arrays.deref();
     let update = calculate_modify_liquidity(
         &ctx.accounts.whirlpool,
         &ctx.accounts.position,
-        &ctx.accounts.tick_array_lower,
-        &ctx.accounts.tick_array_upper,
+        lower_tick_array,
+        upper_tick_array,
         liquidity_delta,
         timestamp,
     )?;
 
+    let (lower_tick_array_mut, upper_tick_array_mut) = tick_arrays.deref_mut();
     sync_modify_liquidity_values(
         &mut ctx.accounts.whirlpool,
         &mut ctx.accounts.position,
-        &ctx.accounts.tick_array_lower,
-        &ctx.accounts.tick_array_upper,
-        update,
+        lower_tick_array_mut,
+        upper_tick_array_mut,
+        &update,
         timestamp,
+    )?;
+
+    // Need to drop the tick arrays so we can potentially resize them
+    drop(tick_arrays);
+
+    update_tick_array_accounts(
+        &ctx.accounts.position,
+        ctx.accounts.tick_array_lower.to_account_info(),
+        ctx.accounts.tick_array_upper.to_account_info(),
+        &update.tick_array_lower_update,
+        &update.tick_array_upper_update,
     )?;
 
     let (delta_a, delta_b) = calculate_liquidity_token_deltas(
@@ -108,6 +134,18 @@ pub fn handler<'info>(
         delta_b,
         transfer_memo::TRANSFER_MEMO_DECREASE_LIQUIDITY.as_bytes(),
     )?;
+
+    emit!(LiquidityDecreased {
+        whirlpool: ctx.accounts.whirlpool.key(),
+        position: ctx.accounts.position.key(),
+        tick_lower_index: ctx.accounts.position.tick_lower_index,
+        tick_upper_index: ctx.accounts.position.tick_upper_index,
+        liquidity: liquidity_amount,
+        token_a_amount: delta_a,
+        token_b_amount: delta_b,
+        token_a_transfer_fee: transfer_fee_excluded_delta_a.transfer_fee,
+        token_b_transfer_fee: transfer_fee_excluded_delta_b.transfer_fee,
+    });
 
     Ok(())
 }

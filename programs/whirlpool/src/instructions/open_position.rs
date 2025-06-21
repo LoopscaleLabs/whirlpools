@@ -2,6 +2,8 @@ use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{self, Mint, Token, TokenAccount};
 
+use crate::manager::tick_array_manager::collect_rent_for_ticks_in_position;
+use crate::state;
 use crate::{state::*, util::mint_position_token_and_remove_authority};
 
 #[derive(Accounts)]
@@ -48,13 +50,20 @@ pub struct OpenPosition<'info> {
 */
 pub fn handler(
     ctx: Context<OpenPosition>,
-    _bumps: crate::state::OpenPositionBumps,
+    // derive(Accounts) generates OpenPositionBumps, so we need to clarify which one we want to use.
+    _bumps: state::OpenPositionBumps,
     tick_lower_index: i32,
     tick_upper_index: i32,
 ) -> Result<()> {
     let whirlpool = &ctx.accounts.whirlpool;
     let position_mint = &ctx.accounts.position_mint;
     let position = &mut ctx.accounts.position;
+
+    collect_rent_for_ticks_in_position(
+        &ctx.accounts.funder,
+        position,
+        &ctx.accounts.system_program,
+    )?;
 
     position.open_position(
         whirlpool,

@@ -1,5 +1,5 @@
+use crate::manager::tick_array_manager::collect_rent_for_ticks_in_position;
 use crate::state::*;
-use crate::util::build_position_token_metadata;
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_2022::spl_token_2022;
@@ -8,7 +8,7 @@ use anchor_spl::token_2022::Token2022;
 use crate::constants::nft::whirlpool_nft_update_auth::ID as WP_NFT_UPDATE_AUTH;
 use crate::util::{
     initialize_position_mint_2022, initialize_position_token_account_2022,
-    initialize_token_metadata_extension, mint_position_token_2022_and_remove_authority,
+    mint_position_token_2022_and_remove_authority,
 };
 
 #[derive(Accounts)]
@@ -66,6 +66,12 @@ pub fn handler(
         &[ctx.bumps.position],
     ];
 
+    collect_rent_for_ticks_in_position(
+        &ctx.accounts.funder,
+        position,
+        &ctx.accounts.system_program,
+    )?;
+
     position.open_position(
         whirlpool,
         position_mint.key(),
@@ -81,23 +87,6 @@ pub fn handler(
         &ctx.accounts.token_2022_program,
         with_token_metadata,
     )?;
-
-    if with_token_metadata {
-        let (name, symbol, uri) = build_position_token_metadata(position_mint, position, whirlpool);
-    
-        initialize_token_metadata_extension(
-            name,
-            symbol,
-            uri,
-            position_mint,
-            position,
-            &ctx.accounts.metadata_update_auth,
-            &ctx.accounts.funder,
-            &ctx.accounts.system_program,
-            &ctx.accounts.token_2022_program,
-            &position_seeds,
-        )?;
-    }
 
     initialize_position_token_account_2022(
         &ctx.accounts.position_token_account,
