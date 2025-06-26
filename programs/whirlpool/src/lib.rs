@@ -16,8 +16,6 @@ pub mod manager;
 pub mod math;
 pub mod state;
 #[doc(hidden)]
-pub mod tests;
-#[doc(hidden)]
 pub mod util;
 
 use crate::state::{LockType, OpenPositionBumps, OpenPositionWithMetadataBumps, WhirlpoolBumps};

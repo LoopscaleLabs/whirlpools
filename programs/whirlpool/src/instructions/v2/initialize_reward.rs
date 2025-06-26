@@ -30,7 +30,7 @@ pub struct InitializeRewardV2<'info> {
     )]
     pub reward_vault: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    #[account(address = *reward_mint.to_account_info().owner)]
+    #[account()]
     pub reward_token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,

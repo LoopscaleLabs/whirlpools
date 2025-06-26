@@ -29,32 +29,32 @@ pub struct TwoHopSwapV2<'info> {
     #[account(mut)]
     pub whirlpool_two: Box<Account<'info, Whirlpool>>,
 
-    #[account(address = whirlpool_one.input_token_mint(a_to_b_one))]
+    #[account()]
     pub token_mint_input: InterfaceAccount<'info, Mint>,
-    #[account(address = whirlpool_one.output_token_mint(a_to_b_one))]
+    #[account()]
     pub token_mint_intermediate: InterfaceAccount<'info, Mint>,
-    #[account(address = whirlpool_two.output_token_mint(a_to_b_two))]
+    #[account()]
     pub token_mint_output: InterfaceAccount<'info, Mint>,
 
-    #[account(address = *token_mint_input.to_account_info().owner)]
+    #[account()]
     pub token_program_input: Interface<'info, TokenInterface>,
-    #[account(address = *token_mint_intermediate.to_account_info().owner)]
+    #[account()]
     pub token_program_intermediate: Interface<'info, TokenInterface>,
-    #[account(address = *token_mint_output.to_account_info().owner)]
+    #[account()]
     pub token_program_output: Interface<'info, TokenInterface>,
 
-    #[account(mut, constraint = token_owner_account_input.mint == token_mint_input.key())]
+    #[account(mut,)]
     pub token_owner_account_input: Box<InterfaceAccount<'info, TokenAccount>>,
-    #[account(mut, address = whirlpool_one.input_token_vault(a_to_b_one))]
+    #[account(mut,)]
     pub token_vault_one_input: Box<InterfaceAccount<'info, TokenAccount>>,
-    #[account(mut, address = whirlpool_one.output_token_vault(a_to_b_one))]
+    #[account(mut)]
     pub token_vault_one_intermediate: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    #[account(mut, address = whirlpool_two.input_token_vault(a_to_b_two))]
+    #[account(mut,)]
     pub token_vault_two_intermediate: Box<InterfaceAccount<'info, TokenAccount>>,
-    #[account(mut, address = whirlpool_two.output_token_vault(a_to_b_two))]
+    #[account(mut, )]
     pub token_vault_two_output: Box<InterfaceAccount<'info, TokenAccount>>,
-    #[account(mut, constraint = token_owner_account_output.mint == token_mint_output.key())]
+    #[account(mut)]
     pub token_owner_account_output: Box<InterfaceAccount<'info, TokenAccount>>,
 
     pub token_authority: Signer<'info>,

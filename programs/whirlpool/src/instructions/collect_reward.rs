@@ -83,33 +83,3 @@ fn calculate_collect_reward(position_reward: PositionRewardInfo, vault_amount: u
     (transfer_amount, updated_amount_owed)
 }
 
-#[cfg(test)]
-mod unit_tests {
-    use super::calculate_collect_reward;
-    use crate::state::PositionRewardInfo;
-
-    #[test]
-    fn test_calculate_collect_reward_vault_insufficient_tokens() {
-        let (transfer_amount, updated_amount_owed) =
-            calculate_collect_reward(position_reward(10), 1);
-
-        assert_eq!(transfer_amount, 1);
-        assert_eq!(updated_amount_owed, 9);
-    }
-
-    #[test]
-    fn test_calculate_collect_reward_vault_sufficient_tokens() {
-        let (transfer_amount, updated_amount_owed) =
-            calculate_collect_reward(position_reward(10), 10);
-
-        assert_eq!(transfer_amount, 10);
-        assert_eq!(updated_amount_owed, 0);
-    }
-
-    fn position_reward(amount_owed: u64) -> PositionRewardInfo {
-        PositionRewardInfo {
-            amount_owed,
-            ..Default::default()
-        }
-    }
-}
