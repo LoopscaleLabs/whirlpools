@@ -4,7 +4,8 @@ use arrayref::array_ref;
 use crate::errors::ErrorCode;
 use crate::state::*;
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Default, Debug, PartialEq, Copy)]
+#[account]
+#[derive(Copy, Debug, PartialEq)]
 pub struct DynamicTickData {
     pub liquidity_net: i128,   // 16
     pub liquidity_gross: u128, // 16
@@ -68,11 +69,7 @@ impl From<DynamicTick> for Tick {
 
 // This struct is never actually used anywhere.
 // account attr is used to generate the definition in the IDL.
-#[cfg_attr(feature = "idl-build", account)]
-#[cfg_attr(
-    all(not(feature = "idl-build"), test),
-    derive(anchor_lang::AnchorDeserialize)
-)]
+#[account]
 pub struct DynamicTickArray {
     pub start_tick_index: i32, // 4 bytes
     pub whirlpool: Pubkey,     // 32 bytes
@@ -82,31 +79,16 @@ pub struct DynamicTickArray {
 }
 
 impl DynamicTickArray {
-    pub const MIN_LEN: usize = DynamicTickArray::DISCRIMINATOR.len()
+    pub const MIN_LEN: usize = <Self as Discriminator>::DISCRIMINATOR.len()
         + 4
         + 32
         + 16
         + DynamicTick::UNINITIALIZED_LEN * TICK_ARRAY_SIZE_USIZE;
-    pub const MAX_LEN: usize = DynamicTickArray::DISCRIMINATOR.len()
+    pub const MAX_LEN: usize = <Self as Discriminator>::DISCRIMINATOR.len()
         + 4
         + 32
         + 16
         + DynamicTick::INITIALIZED_LEN * TICK_ARRAY_SIZE_USIZE;
-}
-
-// Create a private module to generate the discriminator based on the struct name.
-mod __private {
-    use super::*;
-    #[account]
-    pub struct DynamicTickArray {}
-}
-
-#[cfg(not(feature = "idl-build"))]
-impl Discriminator for DynamicTickArray {
-    const DISCRIMINATOR: [u8; 8] = __private::DynamicTickArray::DISCRIMINATOR;
-    fn discriminator() -> [u8; 8] {
-        Self::DISCRIMINATOR
-    }
 }
 
 #[derive(Debug)]
@@ -945,7 +927,7 @@ mod discriminator_tests {
 
     #[test]
     fn test_discriminator() {
-        let discriminator = DynamicTickArray::discriminator();
+        let discriminator = <DynamicTickArray as Discriminator>::DISCRIMINATOR;
         // The discriminator is determined by the struct name and not depending on the program id.
         // $ echo -n account:DynamicTickArray | sha256sum | cut -c 1-16
         // 11d8f68ee1c7da38
