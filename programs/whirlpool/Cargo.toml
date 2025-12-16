@@ -28,7 +28,7 @@ uint = { version = "0.9.1", default-features = false }
 borsh = "0.10.3"
 mpl-token-metadata = { version = "4.1.2", features = ["serde"] }
 borsh09 = { package = "borsh", version = "=0.9.3" }
-arrayref = { version = "=0.3.8" }
+arrayref = { version = "0.3.8" }
 bytemuck = { version = "1.4.0", features = ["derive", "min_const_generics"] }
 
 [dev-dependencies]
