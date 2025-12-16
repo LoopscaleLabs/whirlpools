@@ -277,6 +277,10 @@ impl Default for Oracle {
 impl Oracle {
     pub const LEN: usize = 8 + 32 + 8 + AdaptiveFeeConstants::LEN + AdaptiveFeeVariables::LEN + 128;
 
+    pub fn discriminator() -> [u8; 8] {
+        *arrayref::array_ref![<Oracle as anchor_lang::Discriminator>::DISCRIMINATOR, 0, 8]
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn initialize(
         &mut self,

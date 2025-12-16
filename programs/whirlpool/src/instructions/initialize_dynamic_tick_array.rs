@@ -96,12 +96,12 @@ pub fn handler(
     let mut data = ctx.accounts.tick_array.try_borrow_mut_data()?;
     let is_initialized = data[0..8] != [0; 8];
     if !is_initialized {
-        data[0..8].copy_from_slice(&DynamicTickArray::DISCRIMINATOR);
+        data[0..8].copy_from_slice(DynamicTickArray::DISCRIMINATOR);
         let tick_array = DynamicTickArrayLoader::load_mut(&mut data[8..]);
         tick_array.initialize(&ctx.accounts.whirlpool, start_tick_index)
     } else if idempotent
-        && (data[0..8] == DynamicTickArray::DISCRIMINATOR
-            || data[0..8] == FixedTickArray::DISCRIMINATOR)
+        && (&data[0..8] == DynamicTickArray::DISCRIMINATOR
+            || &data[0..8] == FixedTickArray::DISCRIMINATOR)
     {
         Ok(())
     } else {

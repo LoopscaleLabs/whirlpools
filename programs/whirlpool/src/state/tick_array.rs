@@ -115,11 +115,11 @@ pub fn load_tick_array<'a>(
     let discriminator = array_ref![data, 0, 8];
 
     let tick_array: LoadedTickArray<'a> = match *discriminator {
-        FixedTickArray::DISCRIMINATOR => Ref::map(data, |data| {
+        d if &d[..] == FixedTickArray::DISCRIMINATOR => Ref::map(data, |data| {
             let tick_array: &FixedTickArray = bytemuck::from_bytes(&data[8..]);
             tick_array
         }),
-        DynamicTickArray::DISCRIMINATOR => Ref::map(data, |data| {
+        d if &d[..] == DynamicTickArray::DISCRIMINATOR => Ref::map(data, |data| {
             let tick_array: &DynamicTickArrayLoader = DynamicTickArrayLoader::load(&data[8..]);
             tick_array
         }),
@@ -155,12 +155,12 @@ pub fn load_tick_array_mut<'a, 'info>(
 
     let discriminator = array_ref![data, 0, 8];
     let tick_array: LoadedTickArrayMut<'a> = match *discriminator {
-        FixedTickArray::DISCRIMINATOR => RefMut::map(data, |data| {
+        d if &d[..] == FixedTickArray::DISCRIMINATOR => RefMut::map(data, |data| {
             let tick_array: &mut FixedTickArray =
                 bytemuck::from_bytes_mut(&mut data.deref_mut()[8..]);
             tick_array
         }),
-        DynamicTickArray::DISCRIMINATOR => RefMut::map(data, |data| {
+        d if &d[..] == DynamicTickArray::DISCRIMINATOR => RefMut::map(data, |data| {
             let tick_array: &mut DynamicTickArrayLoader =
                 DynamicTickArrayLoader::load_mut(&mut data.deref_mut()[8..]);
             tick_array
